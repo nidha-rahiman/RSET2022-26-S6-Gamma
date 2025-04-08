@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "616192718361",
+    "project_id": "live-bus-tracking-app-16ac8",
+    "storage_bucket": "live-bus-tracking-app-16ac8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616192718361:android:5973ef4c8e1c80a082dc88",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgzJHAHW2S5u8ynHMil3qX8CYFUNRNNqc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
