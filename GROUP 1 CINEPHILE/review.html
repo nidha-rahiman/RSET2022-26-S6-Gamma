@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write a Review</title>
+    <!-- Load Sentiment.js with error handling -->
+    <script>
+        function loadSentimentLibrary() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/sentiment@5.0.2/sentiment.min.js';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load sentiment library'));
+                document.head.appendChild(script);
+            });
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #141414;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .header {
+            padding: 20px 40px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #87CEEB;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #87CEEB;
+        }
+
+        .content {
+            padding: 100px 20px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .movie-info {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .movie-poster {
+            width: 150px;
+            height: 225px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .movie-details h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .movie-details p {
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .review-form {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #87CEEB;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .rating-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .rating-btn {
+            background: none;
+            border: none;
+            color: #ffd700;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .rating-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .rating-btn.active {
+            color: #ffd700;
+        }
+
+        .submit-btn {
+            background: #87CEEB;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background: #5F9EA0;
+        }
+
+        .sentiment-indicator {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .sentiment-positive {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+        }
+
+        .sentiment-negative {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+
+        .sentiment-neutral {
+            background: rgba(158, 158, 158, 0.2);
+            color: #9e9e9e;
+            border: 1px solid #9e9e9e;
+        }
+
+        .sentiment-score {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #87CEEB;
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #ff4444;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .movie-info {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .movie-poster {
+                width: 120px;
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cinephile</h1>
+        <div class="nav-links">
+            <a href="dashboard.html">Home</a>
+            <a href="profile.html">Profile</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="movie-info">
+            <img id="moviePoster" src="" alt="Movie Poster" class="movie-poster">
+            <div class="movie-details">
+                <h2 id="movieTitle">Loading...</h2>
+                <p id="movieYear"></p>
+                <p id="movieRating"></p>
+            </div>
+        </div>
+
+        <div class="review-form">
+            <div class="form-group">
+                <label for="reviewText">Your Review</label>
+                <textarea id="reviewText" placeholder="Write your review here..."></textarea>
+                <div id="sentimentIndicator" class="sentiment-indicator"></div>
+            </div>
+            <div class="form-group">
+                <label>Rating</label>
+                <div class="rating-group">
+                    <button class="rating-btn" data-rating="1">★</button>
+                    <button class="rating-btn" data-rating="2">★</button>
+                    <button class="rating-btn" data-rating="3">★</button>
+                    <button class="rating-btn" data-rating="4">★</button>
+                    <button class="rating-btn" data-rating="5">★</button>
+                </div>
+            </div>
+            <button class="submit-btn" onclick="submitReview()">Submit Review</button>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script>
+        let sentiment; // Will store the sentiment analyzer instance
+
+        // Initialize everything
+        async function initialize() {
+            try {
+                // Load sentiment library
+                await loadSentimentLibrary();
+                console.log('Sentiment library loaded successfully');
+
+                // Initialize sentiment analyzer
+                sentiment = new Sentiment({
+                    extras: {
+                        'amazing': 5,
+                        'excellent': 5,
+                        'great': 4,
+                        'good': 3,
+                        'okay': 1,
+                        'bad': -3,
+                        'terrible': -5,
+                        'awful': -5,
+                        'hate': -4,
+                        'love': 5,
+                        'enjoy': 4,
+                        'boring': -3,
+                        'interesting': 3,
+                        'fascinating': 4,
+                        'disappointing': -4,
+                        'waste': -4,
+                        'masterpiece': 5,
+                        'brilliant': 5,
+                        'perfect': 5,
+                        'flawed': -3,
+                        'mediocre': -2
+                    }
+                });
+
+                // Test the sentiment analyzer
+                const testResult = sentiment.analyze('This movie was amazing!');
+                console.log('Sentiment analyzer test:', testResult);
+
+                // Add event listener for sentiment analysis
+                const reviewTextArea = document.getElementById('reviewText');
+                if (reviewTextArea) {
+                    reviewTextArea.addEventListener('input', debounce(analyzeSentiment, 500));
+                } else {
+                    console.error('Review textarea not found');
+                }
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                alert('Error initializing review system. Please refresh the page.');
+            }
+        }
+
+        // Debounce function to prevent too many sentiment analyses
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Analyze sentiment of review text
+        function analyzeSentiment() {
+            const reviewText = document.getElementById('reviewText').value;
+            const indicator = document.getElementById('sentimentIndicator');
+            
+            if (!reviewText || !sentiment || !indicator) {
+                if (indicator) indicator.style.display = 'none';
+                return;
+            }
+
+            try {
+                console.log('Analyzing text:', reviewText);
+                const result = sentiment.analyze(reviewText);
+                console.log('Sentiment analysis result:', result);
+
+                // Calculate normalized score (-5 to 5)
+                const normalizedScore = Math.min(Math.max(result.score / 5, -5), 5);
+                const magnitude = result.tokens.length > 0 ? Math.abs(result.score) / result.tokens.length : 0;
+
+                // Determine sentiment category and color
+                let sentimentText, sentimentClass;
+                if (normalizedScore > 1) {
+                    sentimentText = 'Positive Review';
+                    sentimentClass = 'sentiment-positive';
+                } else if (normalizedScore < -1) {
+                    sentimentText = 'Negative Review';
+                    sentimentClass = 'sentiment-negative';
+                } else {
+                    sentimentText = 'Neutral Review';
+                    sentimentClass = 'sentiment-neutral';
+                }
+
+                // Display the result
+                indicator.style.display = 'block';
+                indicator.className = `sentiment-indicator ${sentimentClass}`;
+                indicator.innerHTML = `
+                    <div>${sentimentText}</div>
+                    <div class="sentiment-score">
+                        Score: ${normalizedScore > 0 ? '+' : ''}${normalizedScore.toFixed(1)}
+                        (Intensity: ${magnitude.toFixed(2)})
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Sentiment analysis error:', error);
+                indicator.style.display = 'none';
+            }
+        }
+
+        // Get movie ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const movieId = urlParams.get('id');
+
+        // Load movie details
+        async function loadMovieDetails() {
+            try {
+                const response = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=e7dab9ac70474bbfe363ad906dd566d5&language=en-US`);
+                const movie = await response.json();
+
+                document.getElementById('movieTitle').textContent = movie.title;
+                document.getElementById('movieYear').textContent = `Released: ${movie.release_date.split('-')[0]}`;
+                document.getElementById('movieRating').textContent = `Rating: ${movie.vote_average.toFixed(1)}/10`;
+                document.getElementById('moviePoster').src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+            } catch (error) {
+                console.error('Error loading movie details:', error);
+            }
+        }
+
+        // Handle rating selection
+        document.querySelectorAll('.rating-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const rating = parseInt(button.dataset.rating);
+                document.querySelectorAll('.rating-btn').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.rating) <= rating);
+                });
+            });
+        });
+
+        // Submit review
+        async function submitReview() {
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const reviewText = document.getElementById('reviewText').value;
+            const rating = document.querySelectorAll('.rating-btn.active').length;
+            
+            console.log('Submitting review with text:', reviewText);
+            
+            try {
+                const sentimentResult = sentiment.analyze(reviewText);
+                console.log('Sentiment result for submission:', sentimentResult);
+
+                if (!reviewText || rating === 0) {
+                    alert('Please write a review and select a rating');
+                    return;
+                }
+
+                    const reviewData = {
+                    userId: user.uid,
+                        movieId: movieId,
+                    text: reviewText,
+                    rating: rating,
+                    sentiment: {
+                        score: sentimentResult.score,
+                        magnitude: sentimentResult.magnitude,
+                        comparative: sentimentResult.comparative,
+                        tokens: sentimentResult.tokens,
+                        words: sentimentResult.words,
+                        positive: sentimentResult.positive,
+                        negative: sentimentResult.negative
+                    },
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                console.log('Saving review data:', reviewData);
+
+                const reviewRef = db.ref('reviews').push();
+                await reviewRef.set(reviewData);
+                console.log('Review saved successfully');
+
+                window.location.href = `movie-details.html?id=${movieId}`;
+                    } catch (error) {
+                console.error('Error submitting review:', error);
+                alert('Failed to submit review. Please try again.');
+            }
+        }
+
+        // Check authentication and load movie details
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadMovieDetails();
+        });
+
+        // Start initialization when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>
