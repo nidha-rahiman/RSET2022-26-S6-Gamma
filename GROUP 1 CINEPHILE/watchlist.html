@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Watchlist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #141414;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .header {
+            padding: 20px 40px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #e50914;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #e50914;
+        }
+
+        .content {
+            padding: 100px 20px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .watchlist-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .movie-card {
+            position: relative;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            z-index: 2;
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .movie-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            border-radius: 0 0 4px 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .movie-card:hover .movie-info {
+            opacity: 1;
+            background: rgba(135, 206, 235, 0.9);
+        }
+
+        .movie-title {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #000;
+        }
+
+        .movie-rating {
+            font-size: 0.9rem;
+            color: #000;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #87CEEB;
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 3;
+        }
+
+        .movie-card:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .remove-btn:hover {
+            background: #5F9EA0;
+        }
+
+        .empty-watchlist {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+            color: #aaa;
+        }
+
+        .empty-watchlist a {
+            color: #e50914;
+            text-decoration: none;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        .empty-watchlist a:hover {
+            text-decoration: underline;
+        }
+
+        .clear-watchlist {
+            background: #87CEEB;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .clear-watchlist:hover {
+            background: #5F9EA0;
+        }
+
+        .section-title {
+            color: #87CEEB;
+            margin: 20px 0;
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .nav-links {
+                gap: 10px;
+            }
+
+            .nav-links a {
+                font-size: 0.9rem;
+            }
+
+            .watchlist-container {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .movie-card img {
+                height: 225px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cinephile</h1>
+        <div class="nav-links">
+            <a href="dashboard.html">Home</a>
+            <a href="personalized-recommendations.html">Recommendations</a>
+            <a href="profile.html">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Profile" class="profile-icon">
+            </a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="watchlist-container" id="watchlistContainer">
+            <!-- Movies will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script>
+        const IMAGE_URL = "https://image.tmdb.org/t/p/w500";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBwLRRKIwsSPmvFXnDn5UcweXli12w1Qr0",
+            authDomain: "cinephile-250fc.firebaseapp.com",
+            databaseURL: "https://cinephile-250fc-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "cinephile-250fc",
+            storageBucket: "cinephile-250fc.firebasestorage.app",
+            messagingSenderId: "995080104071",
+            appId: "1:995080104071:web:150cd3e9f3d8a905097022",
+            measurementId: "G-QX66DDM9ZD"
+        };
+
+        // Initialize Firebase
+        console.log('Initializing Firebase...');
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            console.log('Auth state changed:', user ? `User logged in with ID: ${user.uid}` : 'No user');
+            if (!user) {
+                console.log('Redirecting to login page...');
+                window.location.href = 'login.html';
+                return;
+            }
+            console.log('Loading watchlist...');
+            loadWatchlist();
+        });
+
+        // Function to load watchlist
+        function loadWatchlist() {
+            console.log('Inside loadWatchlist function');
+            const user = auth.currentUser;
+            if (!user) {
+                console.log('No user found in loadWatchlist');
+                return;
+            }
+
+            const watchlistRef = db.ref(`watchlists/${user.uid}`);
+            console.log('Setting up watchlist listener for user:', user.uid);
+            watchlistRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                console.log('Raw watchlist data received:', data);
+                
+                // Check if data is null or undefined
+                if (!data) {
+                    console.log('No watchlist data found for user');
+                    const watchlistContainer = document.getElementById('watchlistContainer');
+                    watchlistContainer.innerHTML = `
+                        <div class="empty-watchlist">
+                            <p>Your watchlist is empty</p>
+                            <a href="dashboard.html">Browse Movies</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Convert object to array if it's not already an array
+                const watchlist = Array.isArray(data) ? data : Object.values(data);
+                console.log('Processed watchlist:', watchlist);
+                
+                const watchlistContainer = document.getElementById('watchlistContainer');
+                
+                if (watchlist.length === 0) {
+                    watchlistContainer.innerHTML = `
+                        <div class="empty-watchlist">
+                            <p>Your watchlist is empty</p>
+                            <a href="dashboard.html">Browse Movies</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                watchlistContainer.innerHTML = watchlist.map(movie => `
+                    <div class="movie-card" onclick="window.location.href='movie-details.html?id=${movie.id}'">
+                        <button class="remove-btn" onclick="event.stopPropagation(); removeFromWatchlist(${movie.id})">×</button>
+                        <img src="${IMAGE_URL}${movie.poster_path}" alt="${movie.title}">
+                        <div class="movie-info">
+                            <div class="movie-title">${movie.title}</div>
+                            <div class="movie-rating">⭐ ${movie.vote_average.toFixed(1)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        // Function to remove movie from watchlist
+        async function removeFromWatchlist(movieId) {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+                const watchlistRef = db.ref(`watchlists/${user.uid}`);
+                const snapshot = await watchlistRef.once('value');
+                const watchlist = snapshot.val() || [];
+                
+                const updatedWatchlist = watchlist.filter(movie => movie.id !== movieId);
+                await watchlistRef.set(updatedWatchlist);
+            } catch (error) {
+                console.error('Error removing from watchlist:', error);
+                alert('Failed to remove movie from watchlist. Please try again.');
+            }
+        }
+
+        // Function to clear watchlist
+        async function clearWatchlist() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            if (confirm('Are you sure you want to clear your watchlist?')) {
+                try {
+                    const watchlistRef = db.ref(`watchlists/${user.uid}`);
+                    await watchlistRef.set([]);
+                } catch (error) {
+                    console.error('Error clearing watchlist:', error);
+                    alert('Failed to clear watchlist. Please try again.');
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
