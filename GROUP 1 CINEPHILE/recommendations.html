@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #141414;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .header {
+            padding: 20px 40px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #87CEEB;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #87CEEB;
+        }
+
+        .content {
+            padding: 100px 20px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .recommendations-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .recommendations-header h2 {
+            font-size: 2rem;
+            color: #87CEEB;
+            margin-bottom: 20px;
+        }
+
+        .get-recommendations-btn {
+            background: #87CEEB;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .get-recommendations-btn:hover {
+            background: #5F9EA0;
+        }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .movie-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+
+        .movie-info {
+            padding: 15px;
+        }
+
+        .movie-title {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: #87CEEB;
+        }
+
+        .movie-rating {
+            color: #ffd700;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #87CEEB;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #ff4444;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .movies-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .movie-poster {
+                height: 225px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cinephile</h1>
+        <div class="nav-links">
+            <a href="dashboard.html">Home</a>
+            <a href="profile.html">Profile</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="recommendations-header">
+            <h2>Your Personalized Recommendations</h2>
+            <button class="get-recommendations-btn" onclick="getRecommendations()">Get Recommendations</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">Loading recommendations...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="moviesGrid" class="movies-grid"></div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBwLRRKIwsSPmvFXnDn5UcweXli12w1Qr0",
+            authDomain: "cinephile-250fc.firebaseapp.com",
+            databaseURL: "https://cinephile-250fc-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "cinephile-250fc",
+            storageBucket: "cinephile-250fc.firebasestorage.app",
+            messagingSenderId: "995080104071",
+            appId: "1:995080104071:web:150cd3e9f3d8a905097022",
+            measurementId: "G-QX66DDM9ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // Get recommendations
+        async function getRecommendations() {
+            const loadingElement = document.getElementById('loading');
+            const errorElement = document.getElementById('error');
+            const moviesGrid = document.getElementById('moviesGrid');
+
+            loadingElement.style.display = 'block';
+            errorElement.style.display = 'none';
+            moviesGrid.innerHTML = '';
+
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Get current port from window location
+                const currentPort = window.location.port || '8000';
+                console.log('Fetching recommendations for user:', user.uid);
+                const response = await fetch(`http://localhost:${currentPort}/api/recommendations?userId=${user.uid}`);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                console.log('Recommendations:', data);
+                displayRecommendations(data);
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                errorElement.textContent = 'Failed to load recommendations. Please try again.';
+                errorElement.style.display = 'block';
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+
+        // Function to display recommendations
+        function displayRecommendations(recommendations) {
+            const moviesGrid = document.getElementById('moviesGrid');
+            moviesGrid.innerHTML = '';
+
+            if (!recommendations || recommendations.length === 0) {
+                document.getElementById('error').textContent = 'No recommendations found.';
+                document.getElementById('error').style.display = 'block';
+                return;
+            }
+
+            // Fetch movie details for each recommendation
+            recommendations.forEach(async (movieTitle) => {
+                try {
+                    const movieResponse = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=e7dab9ac70474bbfe363ad906dd566d5&query=${encodeURIComponent(movieTitle)}`);
+                    const movieData = await movieResponse.json();
+                    
+                    if (movieData.results && movieData.results.length > 0) {
+                        const movie = movieData.results[0];
+                        const movieCard = document.createElement('div');
+                        movieCard.className = 'movie-card';
+                        movieCard.onclick = () => window.location.href = `movie-details.html?id=${movie.id}`;
+                        
+                        movieCard.innerHTML = `
+                            <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}" class="movie-poster">
+                            <div class="movie-info">
+                                <div class="movie-title">${movie.title}</div>
+                                <div class="movie-rating">★ ${movie.vote_average.toFixed(1)}</div>
+                            </div>
+                        `;
+                        
+                        moviesGrid.appendChild(movieCard);
+                    }
+                } catch (error) {
+                    console.error('Error fetching movie details:', error);
+                }
+            });
+        }
+
+        // Check authentication
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html> 
